@@ -88,7 +88,8 @@ func main() {
 
 	c = info.getAllStats()
 	fmt.Println(c)
-
+	
+	//test disk io
 	u, _ := disk.Usage("/")
 	fmt.Println(*u)
 	//	app.Bind(basic)
