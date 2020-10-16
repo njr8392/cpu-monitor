@@ -2,16 +2,20 @@ package main
 
 import (
 	"fmt"
-	"time"
-	"runtime"
 	"github.com/leaanthony/mewn"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/wailsapp/wails"
+	"runtime"
+	"time"
 )
 
+type stat struct {
+	log *wails.CustomLogger
+}
+
 type cpustats struct {
-	Usage   int
+	Usage   float64
 	Count   int
 	Os      string
 	Arch    string
@@ -20,28 +24,44 @@ type cpustats struct {
 
 type diskstat struct {
 	info *disk.UsageStat
+}
+
+func (s *stat) getAllStats() cpustats {
+	return cpustats{
+		Usage:   s.cpuPercent(),
+		Count:   s.getCount(),
+		Os:      runtime.GOOS,
+		Arch:    runtime.GOARCH,
+		CpuInfo: s.getCpuInfo(),
 	}
-func getStats() cpustats {
-	var c cpustats
+}
+
+func (s *stat) getCpuInfo() []cpu.InfoStat {
 	stats, err := cpu.Info()
 	if err != nil {
 		fmt.Println(err)
 	}
-	c.CpuInfo = stats
-	return c
+	return stats
 }
 
-func cpuPercent() []float64{
+func (s *stat) cpuPercent() float64 {
 	p, err := cpu.Percent(time.Second, false)
-	if err != nil{
+	if err != nil {
 		fmt.Print(err)
 	}
-	return p
+	return p[0]
 }
 
-func getDiskUsuage() *disk.UsageStat{
+func (s *stat) getCount() int {
+	count, err := cpu.Counts(true)
+	if err != nil {
+		s.log.Errorf("Unable to get cpu usage: %s", err)
+	}
+	return count
+}
+func getDiskUsuage() *disk.UsageStat {
 	u, err := disk.Usage("/dev/sda5/")
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 	}
 	return u
@@ -59,16 +79,18 @@ func main() {
 		CSS:    css,
 		Colour: "#131313",
 	})
+
+	//initialize cpu calls
+	var (
+		info = &stat{}
+		c    cpustats
+	)
+
+	c = info.getAllStats()
+	fmt.Println(c)
+
 	u, _ := disk.Usage("/")
 	fmt.Println(*u)
-	info := getStats()
-	p := cpuPercent()
-	fmt.Println(info)
-	fmt.Println(p)
-	cp := &cpustats{}
-	cp.Os = runtime.GOOS
-	cp.Arch = runtime.GOARCH
-	fmt.Printf("%v", cp)
-//	app.Bind(basic)
+	//	app.Bind(basic)
 	app.Run()
 }
